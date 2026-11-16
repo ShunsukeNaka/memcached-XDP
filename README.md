@@ -2,6 +2,7 @@
 
 Memcached の GET を XDP/eBPF でカーネル入口から返す（BMC 方式）研究用リポジトリ。
 背景と研究計画は [doc/README.md](doc/README.md) を参照。
+計測の道具は [bench/README.md](bench/README.md) を参照。
 
 ## 実験環境
 

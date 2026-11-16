@@ -1,0 +1,5 @@
+# seccomp フィルタを外して memcached を動かす (seccomp の負荷がどれくらいあるかの比較用)。
+services:
+  memcached:
+    security_opt:
+      - seccomp:unconfined

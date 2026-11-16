@@ -30,3 +30,17 @@ mysql:         ## mysql シェル
 
 clean:         ## 停止して DB ボリュームも削除
 	docker compose down -v
+
+# ---- 計測 (issue #3) ----
+BENCH_COMPOSE := -f docker-compose.yml -f bench/compose.bench.yml
+ifeq ($(SECCOMP),unconfined)
+BENCH_COMPOSE += -f bench/compose.unconfined.yml
+endif
+
+.PHONY: bench-build bench-up
+
+bench-build:   ## 負荷ツール bench/loadgen/mcload をビルド
+	$(MAKE) -C bench/loadgen
+
+bench-up:      ## 計測用の設定で起動 (コア 0,1 に固定、-t 2)。make bench-up SECCOMP=unconfined で seccomp なし
+	MEMCACHED_THREADS=$(or $(MEMCACHED_THREADS),2) docker compose $(BENCH_COMPOSE) up -d --wait --force-recreate memcached
