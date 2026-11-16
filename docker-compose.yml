@@ -1,0 +1,53 @@
+# 実験用の初期環境: Memcached + MySQL (look-aside キャッシュ構成)
+#
+# - memcached は network_mode: host で動かす。後で XDP/TC の eBPF をホストの
+#   NIC (まずは lo、2台構成にしたら eno1 など) に直接アタッチするため。
+# - BMC と同じく UDP の GET を扱うので UDP ポートも有効化する (-U)。
+#   memcached 1.5.6 以降は UDP がデフォルト無効なので明示が必要。
+# - mysql は XDP の対象外なのでブリッジネットワークで良い。ポートは localhost のみに公開。
+#
+# 値は環境変数 (または .env) で上書きできる。
+
+services:
+  memcached:
+    image: memcached:1.6.45
+    container_name: mcxdp-memcached
+    network_mode: host
+    command:
+      - memcached
+      - -l
+      - ${MEMCACHED_LISTEN:-127.0.0.1}
+      - -p
+      - ${MEMCACHED_PORT:-11211}
+      - -U
+      - ${MEMCACHED_PORT:-11211}
+      - -m
+      - ${MEMCACHED_MEMORY_MB:-1024}
+      - -t
+      - ${MEMCACHED_THREADS:-4}
+      - -c
+      - ${MEMCACHED_MAX_CONN:-1024}
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.4
+    container_name: mcxdp-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-kvstore}
+      MYSQL_USER: ${MYSQL_USER:-kv}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-kv}
+    ports:
+      - "127.0.0.1:${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
