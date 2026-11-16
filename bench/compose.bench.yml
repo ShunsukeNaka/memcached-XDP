@@ -1,0 +1,6 @@
+# 計測用の上書き設定: memcached を決まったコアに固定する。
+# クライアント (bench/loadgen/mcload) は残りのコアで taskset して動かす。
+# スレッド数はコア数に合わせて MEMCACHED_THREADS で指定する (Makefile の bench-up が 2 にする)。
+services:
+  memcached:
+    cpuset: "${MEMCACHED_CPUS:-0,1}"
